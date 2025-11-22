@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:health_care/presentation/pages/home/home.dart';
-import 'register.dart';
+import 'package:health_care/presentation/home/home.dart';
+import 'package:health_care/presentation/login/register.dart';
 import 'package:health_care/feature/user/repository.dart';
 import 'package:dio/dio.dart';
 
@@ -92,7 +92,7 @@ class LoginPage extends StatelessWidget {
           errorMessage = e.response!.data as String;
         }
       } else if (e.type == DioExceptionType.connectionTimeout || 
-                 e.type == DioExceptionType.receiveTimeout) {
+                  e.type == DioExceptionType.receiveTimeout) {
         errorMessage = '서버 연결 시간이 초과되었습니다. 서버가 실행 중인지 확인해주세요.';
       } else if (e.type == DioExceptionType.connectionError) {
         errorMessage = '서버에 연결할 수 없습니다. baseUrl을 확인해주세요: $baseUrl';
@@ -121,27 +121,87 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      // AppBar 삭제 또는 변경 (이미지에는 AppBar가 보이지 않거나 타이틀만 있음)
+      appBar: AppBar(
+        title: const Text(
+          "로그인",
+          style: TextStyle(
+            color: Colors.black, // 타이틀 색상 변경
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true, // 타이틀 중앙 정렬
+        backgroundColor: Colors.white, // 배경색을 흰색으로 설정
+        elevation: 0, // AppBar 그림자 제거
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(32.0), // Padding 조정
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch, // 버튼의 폭을 늘리기 위해 추가
           children: [
+            // ID 입력 필드
             TextField(
               controller: _userIDController,
-              decoration: const InputDecoration(labelText: 'ID'),
+              decoration: const InputDecoration(
+                labelText: '아이디',
+                // 이미지의 사각형 테두리를 위해 border 추가
+                border: OutlineInputBorder(), 
+                contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+              ),
+              // 라벨 텍스트와 입력 필드를 이미지와 같이 맞추기 위해 제거
+              // labelText: 'ID',
             ),
+            const SizedBox(height: 16), // 간격 조정
+            // 비밀번호 입력 필드
             TextField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true, // 비밀번호 가리기
+              decoration: const InputDecoration(
+                labelText: '비밀번호',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+              ),
+              // 라벨 텍스트와 입력 필드를 이미지와 같이 맞추기 위해 제거
+              // labelText: 'Password',
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24), // 간격 조정
+            
+            // 1. 로그인 버튼 (배경: 검은색, 텍스트: 흰색)
             ElevatedButton(
               onPressed: () => _login(context),
-              child: const Text('Login'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black, // 배경색 검은색
+                foregroundColor: Colors.white, // 텍스트 색상 흰색
+                minimumSize: const Size(double.infinity, 50), // 버튼 높이 설정 및 폭 최대화
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(4)), // 모서리 둥글기 제거 또는 조정
+                ),
+                elevation: 0, // 그림자 제거
+              ),
+              child: const Text(
+                '로그인',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // 폰트 크기 및 두께 조정
+              ),
             ),
+            const SizedBox(height: 16), // 간격 조정
+            
+            // 2. 회원가입 버튼 (배경: 흰색, 테두리: 검은색, 텍스트: 검은색)
             ElevatedButton(
               onPressed: () => _register(context),
-              child: const Text('Register'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white, // 배경색 흰색
+                foregroundColor: Colors.black, // 텍스트 색상 검은색
+                minimumSize: const Size(double.infinity, 50), // 버튼 높이 설정 및 폭 최대화
+                shape: RoundedRectangleBorder(
+                  borderRadius: const BorderRadius.all(Radius.circular(4)),
+                  side: BorderSide(color: Colors.black, width: 1), // 검은색 테두리 추가
+                ),
+                elevation: 0, // 그림자 제거
+              ),
+              child: const Text(
+                '회원가입',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
