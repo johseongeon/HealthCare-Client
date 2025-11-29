@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
-part 'repository.g.dart';
+part 'user_client.g.dart';
 
 @RestApi()
 abstract class UserRepo {
