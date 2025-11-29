@@ -6,6 +6,8 @@ import 'package:health_care/presentation/style/colors.dart';
 import 'package:health_care/presentation/login/sleeping_pattern.dart';
 import 'package:dio/dio.dart';
 import 'package:health_care/presentation/food/camera.dart';
+import 'dart:convert';
+
 
 class LoginPage extends StatelessWidget {
   final TextEditingController _userIDController = TextEditingController();
@@ -25,89 +27,137 @@ class LoginPage extends StatelessWidget {
   }
 
   void _login(BuildContext context) async {
-    final userID = _userIDController.text.trim();
-    final password = _passwordController.text.trim();
+  final userID = _userIDController.text.trim();
+  final password = _passwordController.text.trim();
+  
+  if (userID.isEmpty || password.isEmpty) {
+    _showSnackBar(context, 'ID와 비밀번호를 입력해주세요.', isError: true);
+    return;
+  }
+
+  try {
+    final dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ));
     
-    if (userID.isEmpty || password.isEmpty) {
-      _showSnackBar(context, 'ID와 비밀번호를 입력해주세요.', isError: true);
+    print('Login 요청 전송: $baseUrl/login');
+    print('요청 데이터: user_id=$userID, password=***');
+    
+    final response = await UserRepo(dio, baseUrl: baseUrl).login({
+      'user_id': userID,
+      'password': password,
+    });
+    
+    print('응답 상태 코드: ${response.response.statusCode}');
+    print('응답 데이터: ${response.data}');
+    print('응답 데이터 타입: ${response.data.runtimeType}');
+
+    // ============================
+    //    200 OK 처리
+    // ============================
+    if (response.response.statusCode == 200) {
+
+  dynamic raw = response.data;
+
+  // --------------------------------------
+  // 1) 응답이 String(JSON) → Map으로 변환
+  // --------------------------------------
+  if (raw is String) {
+    try {
+      raw = jsonDecode(raw);
+    } catch (e) {
+      _showSnackBar(context, 'JSON 파싱 실패: $e', isError: true);
       return;
     }
+  }
 
-    try {
-      // Dio 인스턴스를 baseUrl로 초기화하여 생성
-      final dio = Dio(BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
-      ));
-      
-      print('Login 요청 전송: $baseUrl/login');
-      print('요청 데이터: user_id=$userID, password=***');
-      
-      final response = await UserRepo(dio, baseUrl: baseUrl).login({
-        'user_id': userID,
-        'password': password,
-      });
-      
-      print('응답 상태 코드: ${response.response.statusCode}');
-      print('응답 데이터: ${response.data}');
-      print('응답 데이터 타입: ${response.data.runtimeType}');
+  // --------------------------------------
+  // 2) Map인지 확인
+  // --------------------------------------
+  if (raw is! Map<String, dynamic>) {
+    _showSnackBar(context, '잘못된 응답 형식입니다.', isError: true);
+    return;
+  }
 
-      if (response.response.statusCode == 200 || response.response.statusCode == 201) {
-        // 서버 응답이 JSON 객체인 경우 {"token": "..."} 또는 JWT 문자열 자체인 경우 처리
-        String jwt;
-        if (response.data is Map && response.data.containsKey('token')) {
-          jwt = response.data["token"] as String;
-        } else if (response.data is String) {
-          // JWT 문자열이 직접 반환되는 경우
-          jwt = response.data as String;
-        } else {
-          _showSnackBar(context, '로그인 실패: 토큰을 받을 수 없습니다.', isError: true);
-          return;
-        }
-        
-        _showSnackBar(context, '로그인 성공!', isError: false);
-        if (response.data['data'].containsKey('sleeping_pattern')){
-          if (response.data['sleeping_pattern']) {
-            // 수면 패턴이 이미 설정된 경우 홈 페이지로 이동
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomePage(baseUrl: baseUrl, jwt: jwt),
-              ),
-            );
-          } else {
-            // 수면 패턴이 설정되지 않은 경우 수면 패턴 페이지로 이동
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SleepingPatternPage(baseUrl: baseUrl, jwt: jwt),
-              ),
-            );
-          }
-        }
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CameraPage(baseUrl: baseUrl, jwt: jwt),
-          ),
-        );
-      } else {
-        _showSnackBar(context, '로그인 실패: 알 수 없는 오류가 발생했습니다.', isError: true);
-      }
-    } on DioException catch (e) {
-      // Dio 에러 처리 (네트워크 오류, 4xx, 5xx 등의 HTTP 에러)
-      print('DioException 발생: ${e.type}');
-      print('에러 메시지: ${e.message}');
-      print('응답 상태: ${e.response?.statusCode}');
-      print('응답 데이터: ${e.response?.data}');
-    } catch (e, stackTrace) {
-      // 기타 예상치 못한 에러 처리
-      print('예상치 못한 오류: $e');
-      print('스택 트레이스: $stackTrace');
-      _showSnackBar(context, '예상치 못한 오류: $e', isError: true);
+  final map = raw;
+
+  // data 유효성 검사
+  if (map['data'] is! Map<String, dynamic>) {
+    _showSnackBar(context, '응답 데이터(data)가 올바르지 않습니다.', isError: true);
+    return;
+  }
+
+  final data = map['data'] as Map<String, dynamic>;
+  final accessToken = data['accessToken'];
+  final refreshToken = data['refreshToken'];
+  final grantType = data['grantType'];
+
+  if (accessToken == null) {
+    _showSnackBar(context, '로그인 실패: accessToken 없음', isError: true);
+    return;
+  }
+
+  _showSnackBar(context, '로그인 성공!', isError: false);
+
+  // sleeping_pattern 처리
+  if (data.containsKey('sleeping_pattern')) {
+    final sleeping = data['sleeping_pattern'];
+
+    if (sleeping == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomePage(baseUrl: baseUrl, jwt: accessToken),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SleepingPatternPage(baseUrl: baseUrl, jwt: accessToken),
+        ),
+      );
     }
   }
+
+   Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SleepingPatternPage(baseUrl: baseUrl, jwt: accessToken),
+        ),
+      );
+      
+    return;
+    
+  // -----------------------
+  // camera test (유지)
+  // -----------------------
+  /*
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (context) => CameraPage(baseUrl: baseUrl, jwt: accessToken),
+    ),
+  );
+  */
+    } else {
+      _showSnackBar(context, '로그인 실패: 알 수 없는 오류가 발생했습니다.', isError: true);
+    }
+
+  } on DioException catch (e) {
+    print('DioException 발생: ${e.type}');
+    print('에러 메시지: ${e.message}');
+    print('응답 상태: ${e.response?.statusCode}');
+    print('응답 데이터: ${e.response?.data}');
+  } catch (e, stackTrace) {
+    print('예상치 못한 오류: $e');
+    print('스택 트레이스: $stackTrace');
+    _showSnackBar(context, '예상치 못한 오류: $e', isError: true);
+  }
+}
+
 
   void _register(BuildContext context) {
     Navigator.push(
