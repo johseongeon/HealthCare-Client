@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:health_care/feature/user/repository.dart';
+import 'package:health_care/feature/user/user_client.dart';
 import 'package:health_care/presentation/login/login.dart';
 
 class RegisterPage extends StatelessWidget {

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:health_care/presentation/home/home.dart';
 import 'package:health_care/presentation/login/register.dart';
-import 'package:health_care/feature/user/repository.dart';
+import 'package:health_care/feature/user/user_client.dart';
 import 'package:health_care/presentation/style/colors.dart';
 import 'package:health_care/presentation/login/sleeping_pattern.dart';
 import 'package:dio/dio.dart';
+import 'package:health_care/presentation/food/camera.dart';
 
 class LoginPage extends StatelessWidget {
   final TextEditingController _userIDController = TextEditingController();
@@ -52,7 +53,7 @@ class LoginPage extends StatelessWidget {
       print('응답 데이터: ${response.data}');
       print('응답 데이터 타입: ${response.data.runtimeType}');
 
-      if (response.response.statusCode == 200) {
+      if (response.response.statusCode == 200 || response.response.statusCode == 201) {
         // 서버 응답이 JSON 객체인 경우 {"token": "..."} 또는 JWT 문자열 자체인 경우 처리
         String jwt;
         if (response.data is Map && response.data.containsKey('token')) {
@@ -66,8 +67,7 @@ class LoginPage extends StatelessWidget {
         }
         
         _showSnackBar(context, '로그인 성공!', isError: false);
-        
-        if (response.data.containsKey('sleeping_pattern')){
+        if (response.data['data'].containsKey('sleeping_pattern')){
           if (response.data['sleeping_pattern']) {
             // 수면 패턴이 이미 설정된 경우 홈 페이지로 이동
             Navigator.pushReplacement(
@@ -86,7 +86,12 @@ class LoginPage extends StatelessWidget {
             );
           }
         }
-        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CameraPage(baseUrl: baseUrl, jwt: jwt),
+          ),
+        );
       } else {
         _showSnackBar(context, '로그인 실패: 알 수 없는 오류가 발생했습니다.', isError: true);
       }
@@ -96,28 +101,6 @@ class LoginPage extends StatelessWidget {
       print('에러 메시지: ${e.message}');
       print('응답 상태: ${e.response?.statusCode}');
       print('응답 데이터: ${e.response?.data}');
-      
-      String errorMessage = '네트워크 오류가 발생했습니다.';
-      
-      // 서버에서 구체적인 에러 응답을 JSON 형태로 보낼 경우 처리
-      if (e.response != null && e.response!.data != null) {
-        if (e.response!.data is Map && e.response!.data.containsKey('error')) {
-          errorMessage = e.response!.data['error'] as String;
-        } else if (e.response!.data is Map && e.response!.data.containsKey('message')) {
-          errorMessage = e.response!.data['message'] as String;
-        } else if (e.response!.data is String) {
-          errorMessage = e.response!.data as String;
-        }
-      } else if (e.type == DioExceptionType.connectionTimeout || 
-                  e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = '서버 연결 시간이 초과되었습니다. 서버가 실행 중인지 확인해주세요.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = '서버에 연결할 수 없습니다. baseUrl을 확인해주세요: $baseUrl';
-      } else {
-        errorMessage = '서버에 연결할 수 없습니다: ${e.message}';
-      }
-
-      _showSnackBar(context, errorMessage, isError: true);
     } catch (e, stackTrace) {
       // 기타 예상치 못한 에러 처리
       print('예상치 못한 오류: $e');
