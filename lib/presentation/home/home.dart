@@ -276,8 +276,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            _formatSleepTime(
-                                homeData?['sleepTime'] ?? '0437'),
+                                '${homeData?['sleepHours'] ?? '0'}시간 ${homeData?['sleepMinutes'] ?? '0'}분',
                             style: const TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -355,7 +354,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            '${homeData?['mealTime'] ?? 0}끼',
+                            '${homeData?['mealCount'] ?? 0}끼',
                             style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
